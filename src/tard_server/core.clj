@@ -19,7 +19,7 @@
 
 (let [{:keys [ch-recv send-fn ajax-post-fn 
               ajax-get-or-ws-handshake-fn connected-uids]}
-    (sente/make-channel-socket! {:packer packer})]
+      (sente/make-channel-socket! {:packer packer})]
   (def ring-ajax-post ajax-post-fn)
   (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
   (def ch-chsk ch-recv)
@@ -39,7 +39,6 @@
 (defmulti event-msg-handler :id)
 
 (defn event-msg-handler* [{:as ev-msg :keys [id ?data event]}]
-  (logf "Event: %s" event)
   (event-msg-handler ev-msg))
 
 (defmethod event-msg-handler :default [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
@@ -49,6 +48,14 @@
     (when ?reply-fn
       (?reply-fn {:umatched-event-as-echoed-from-from-server event}))))
 
+(defmethod event-msg-handler :chsk/recv [{:as ev-msg :keys [?data]}]
+  (logf "Push event from server: %s" ?data))
+
+(defmethod event-msg-handler :tard-web.core/button2 [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
+  (println "button2")
+  (when ?reply-fn
+    (?reply-fn {:you-clicked "button2"})))
+
 (defonce http-server_ (atom nil))
 
 (defn stop-http-server! []
@@ -57,7 +64,7 @@
 
 (defn start-http-server! []
   (stop-http-server!)
-  (let [s (http-kit-server/run-server (var ring-handler) {:port 0})
+  (let [s (http-kit-server/run-server (var ring-handler) {:port 8080})
         uri (format "http://localhost:%s/" (:local-port (meta s)))]
     (reset! http-server_ s)
     (logf "Http-kit server is running at `%s`" uri)))
