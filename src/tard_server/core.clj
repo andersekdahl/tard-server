@@ -4,6 +4,7 @@
     [compojure.core :as comp :refer (defroutes GET POST)]
     [compojure.route :as route]
     [ring.middleware.defaults]
+    [ring.middleware.cors :refer [wrap-cors]]
     [hiccup.core :as hiccup]
     [org.httpkit.server :as http-kit-server]
     [clojure.core.async :as async :refer (<! <!! >! >!! put! chan go go-loop)]
@@ -26,15 +27,26 @@
   (def chsk-send! send-fn)
   (def connected-uids connected-uids))
 
+(defn login! [ring-request]
+  (let [{:keys [session params]} ring-request
+        {:keys [username password]} params]
+    (logf "Login request: %s" params)
+    ;; todo: Check username/password against database
+    {:status 200 :session (assoc session :uid username)}))
+
 (defroutes routes
   (GET "/chsk" req (ring-ajax-get-or-ws-handshake req))
-  (POST "/chsk" req (ring-ajax-post req)))
+  (POST "/chsk" req (ring-ajax-post req))
+  (POST "/login" req (login! req)))
 
 (def ring-handler
   (let [ring-defaults-config
         (assoc-in ring.middleware.defaults/site-defaults [:security :anti-forgery]
           {:read-token (fn [req] (-> req :params :csrf-token))})]
     (ring.middleware.defaults/wrap-defaults routes ring-defaults-config)))
+
+(def cors-ring-handler (wrap-cors ring-handler :access-control-allow-origin #".*"
+                                               :access-control-allow-methods [:get :put :post :delete]))
 
 (defmulti event-msg-handler :id)
 
@@ -64,7 +76,7 @@
 
 (defn start-http-server! []
   (stop-http-server!)
-  (let [s (http-kit-server/run-server (var ring-handler) {:port 8080})
+  (let [s (http-kit-server/run-server (var cors-ring-handler) {:port 8080})
         uri (format "http://localhost:%s/" (:local-port (meta s)))]
     (reset! http-server_ s)
     (logf "Http-kit server is running at `%s`" uri)))

@@ -10,6 +10,7 @@
                  [http-kit "2.1.19"]
                  [compojure "1.3.1"] ; Or routing lib of your choice
                  [ring "1.3.2"]
+                 [ring-cors "0.1.6"]
                  [ring/ring-defaults "0.1.2"]
                  [com.cognitect/transit-clj "0.8.259"]]
   
