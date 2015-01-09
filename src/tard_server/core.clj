@@ -18,7 +18,7 @@
 (def packer
   (sente-transit/get-flexi-packer :edn))
 
-(let [{:keys [ch-recv send-fn ajax-post-fn 
+(let [{:keys [ch-recv send-fn ajax-post-fn
               ajax-get-or-ws-handshake-fn connected-uids]}
       (sente/make-channel-socket! {:packer packer})]
   (def ring-ajax-post ajax-post-fn)
@@ -57,6 +57,11 @@
 (defmethod event-msg-handler :chsk/recv [{:as ev-msg :keys [?data]}]
   (logf "Push event from server: %s" ?data))
 
+(defmethod event-msg-handler :messages/new [{:as ev-msg :keys [?data]}]
+  (doseq [uid (:any @connected-uids)]
+    (chsk-send! uid
+      [:messages/new ?data])))
+
 (defmethod event-msg-handler :tard-web.core/button2 [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
   (println "button2")
   (when ?reply-fn
@@ -77,7 +82,7 @@
 
 (defonce router_ (atom nil))
 
-(defn stop-router! [] 
+(defn stop-router! []
   (when-let [stop-f @router_] (stop-f)))
 
 (defn start-router! []
@@ -87,4 +92,3 @@
 (defn -main []
   (start-router!)
   (start-http-server!))
-  
