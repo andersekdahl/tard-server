@@ -40,7 +40,7 @@
   (POST "/login" req (login! req)))
 
 (def cors-routes (wrap-cors routes :access-control-allow-origin #".*"
-                                         :access-control-allow-methods [:get :put :post :delete]))
+                                   :access-control-allow-methods [:get :put :post :delete]))
 
 (defmulti event-msg-handler :id)
 
